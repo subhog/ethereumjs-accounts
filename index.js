@@ -42,11 +42,11 @@ require('browserify-cryptojs/components/aes');
 LocalStore = {
     keys: {}
 };
-LocalStore.prototype.get = function(key) {
+LocalStore.get = function(key) {
     return this.keys[key];
 };
 
-LocalStore.prototype.set = function (key,value,reactive,callback) {
+LocalStore.set = function (key,value,reactive,callback) {
     this.keys[key] = value;
     callback();
 }
