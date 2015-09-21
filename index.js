@@ -27,7 +27,7 @@ Commands:
 
 var _ = require('underscore');
 var Tx = require('ethereumjs-tx');
-var LocalStore = require('localstorejs');
+//var LocalStore = require('localstorejs');
 var BigNumber = require('bignumber.js');
 var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
@@ -37,6 +37,19 @@ require('browserify-cryptojs/components/md5');
 require('browserify-cryptojs/components/evpkdf');
 require('browserify-cryptojs/components/cipher-core');
 require('browserify-cryptojs/components/aes');
+
+
+LocalStore = {
+    keys: {}
+};
+LocalStore.prototype.get = function(key) {
+    return this.keys[key];
+};
+
+LocalStore.prototype.set = function (key,value,reactive,callback) {
+    this.keys[key] = value;
+    callback();
+}
 
 /**
 The Accounts constructor method. This method will construct the in browser Ethereum accounts manager.

@@ -1,24 +1,24 @@
 {
-  "name": "ethereumjs-accounts",
+  "name": "ethereumjs-accounts-node",
   "version": "0.0.11",
-  "description": "A simple module for creating and managing ethereum accounts in browser.",
+  "description": "A simple module for creating and managing ethereum accounts in nodejs env",
   "main": "index.js",
   "scripts": {
     "test": "test"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/SilentCicero/ethereumjs-accounts"
+    "url": "http://github.com/michbil/ethereumjs-accounts"
   },
   "keywords": [
     "web3",
     "ethereum",
     "accounts"
   ],
-  "author": "Nick Dodson",
+  "author": "Michael Bilenko",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/SilentCicero/ethereumjs-accounts/issues"
+    "url": "https://github.com/michbil/ethereumjs-accounts/issues"
   },
   "dependencies": {
     "bignumber.js": "^2.0.7",
