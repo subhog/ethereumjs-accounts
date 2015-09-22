@@ -31,6 +31,7 @@ var Tx = require('ethereumjs-tx');
 var BigNumber = require('bignumber.js');
 var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
+var crypto = require('crypto');
 global.CryptoJS = require('browserify-cryptojs');
 require('browserify-cryptojs/components/enc-base64');
 require('browserify-cryptojs/components/md5');
@@ -38,8 +39,8 @@ require('browserify-cryptojs/components/evpkdf');
 require('browserify-cryptojs/components/cipher-core');
 require('browserify-cryptojs/components/aes');
 
-
-LocalStore = {
+var window = {}
+var LocalStore = {
     keys: {}
 };
 LocalStore.get = function(key) {
@@ -48,7 +49,10 @@ LocalStore.get = function(key) {
 
 LocalStore.set = function (key,value,reactive,callback) {
     this.keys[key] = value;
-    callback();
+    if (callback) {
+        callback();
+    }
+
 }
 
 /**
@@ -171,20 +175,15 @@ var randomBytes = function(length) {
     var i;
     var result = "";
     var isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
-    if(window.crypto && window.crypto.getRandomValues) {
-        values = new Uint32Array(length);
-        window.crypto.getRandomValues(values);
-        for(i=0; i<length; i++) {
-            result += charset[values[i] % charset.length];
-        }
-        return result;
-    } else if(isOpera) {//Opera's Math.random is secure, see http://lists.w3.org/Archives/Public/public-webcrypto/2013Jan/0063.html
-        for(i=0; i<length; i++) {
-            result += charset[Math.floor(Math.random()*charset.length)];
-        }
-        return result;
+
+
+    var values = crypto.randomBytes(length);
+    for(i=0; i<length; i++) {
+        result += charset[values[i] % charset.length];
     }
-    else throw new Error("Your browser sucks and can't generate secure random numbers");
+
+    return result;
+
 }
 
 
@@ -307,42 +306,42 @@ Generate a new Ethereum account in browser with a passphrase that will encrypt t
 **/
 
 Accounts.prototype.new = function(passphrase){
-    var private = new Buffer(randomBytes(64), 'hex');
-    var public = ethUtil.privateToPublic(private);
-    var address = formatAddress(ethUtil.publicToAddress(public)
+    var privateKey = new Buffer(randomBytes(64), 'hex');
+    var publicKey = ethUtil.privateToPublic(privateKey);
+    var address = formatAddress(ethUtil.publicToAddress(publicKey)
                                 .toString('hex'));
     var accountObject = {
         address: address
         , encrypted: false
         , locked: false
-        , hash: ethUtil.sha3(public.toString('hex') + private.toString('hex')).toString('hex')
+        , hash: ethUtil.sha3(publicKey.toString('hex') + privateKey.toString('hex')).toString('hex')
     };
 
     // if passphrrase provided or required, attempt account encryption
     if((!_.isUndefined(passphrase) && !_.isEmpty(passphrase))
         || this.options.requirePassphrase){
         if(this.isPassphrase(passphrase)) {
-            private = CryptoJS.AES
-                .encrypt(private.toString('hex'), passphrase)
+            privateKey = CryptoJS.AES
+                .encrypt(privateKey.toString('hex'), passphrase)
                 .toString();
-            public = CryptoJS.AES
-                .encrypt(public.toString('hex'), passphrase)
+            publicKey = CryptoJS.AES
+                .encrypt(publicKey.toString('hex'), passphrase)
                 .toString();
             accountObject.encrypted = true;
             accountObject.locked = true;
         } else {
             this.log('The passphrase you tried to use was invalid.');
-            private = private.toString('hex')
-            public = public.toString('hex')
+            privateKey = privateKey.toString('hex');
+            publicKey = publicKey.toString('hex');
         }
     }else{
-        private = private.toString('hex')
-        public = public.toString('hex')
+        privateKey = privateKey.toString('hex');
+        publicKey = publicKey.toString('hex');
     }
 
     // Set account object private and public keys
-    accountObject.private = private;
-    accountObject.public = public;
+    accountObject.private = privateKey;
+    accountObject.public = publicKey;
     this.set(address, accountObject);
 
     this.log('New address created');
