@@ -1,3 +1,7 @@
+## Nodejs port of https://github.com/SilentCicero/ethereumjs-accounts, added possibility to work within nodejs context
+
+
+
 ## Synopsis
 
 A simple module for creating, managing and using Ethereum accounts in browser.
