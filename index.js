@@ -27,7 +27,6 @@ Commands:
 
 var _ = require('underscore');
 var Tx = require('ethereumjs-tx');
-//var LocalStore = require('localstorejs');
 var BigNumber = require('bignumber.js');
 var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
@@ -39,21 +38,23 @@ require('browserify-cryptojs/components/evpkdf');
 require('browserify-cryptojs/components/cipher-core');
 require('browserify-cryptojs/components/aes');
 
-var window = {}
-var LocalStore = {
+var window = {};
+var KeyStore = {
     keys: {}
 };
-LocalStore.get = function(key) {
+KeyStore.Get = function(key) {
     return this.keys[key];
 };
 
-LocalStore.set = function (key,value,reactive,callback) {
+KeyStore.Set = function (key,value,reactive,callback) {
     this.keys[key] = value;
     if (callback) {
         callback();
     }
 
-}
+};
+
+
 
 /**
 The Accounts constructor method. This method will construct the in browser Ethereum accounts manager.
@@ -88,15 +89,19 @@ var Accounts = module.exports = function(options){
     // build options
     this.options = _.extend(defaultOptions, options);
 
+    if (options.KeyStore) {
+        KeyStore = options.KeyStore;
+    }
+
     // define Accounts object properties
     defineProperties(this);
 
     // get accounts object, if any
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     // if no accounts object exists, create one
     if(_.isUndefined(accounts) || !_.isObject(accounts))
-        LocalStore.set(this.options.varName, {});
+        KeyStore.set(this.options.varName, {});
 };
 
 
@@ -271,7 +276,7 @@ This will set in browser accounts data at a specified address with the specified
 **/
 
 Accounts.prototype.set = function(address, accountObject){
-    var accounts = LocalStore.get('ethereumAccounts');
+    var accounts = KeyStore.get('ethereumAccounts');
 
     // if object, store; if null, delete
     if(_.isObject(accountObject))
@@ -281,7 +286,7 @@ Accounts.prototype.set = function(address, accountObject){
 
     this.log('Setting account object at address: ' + address + ' to account object ' + String(accountObject));
 
-    LocalStore.set(this.options.varName, accounts);
+    KeyStore.set(this.options.varName, accounts);
 };
 
 
@@ -362,13 +367,13 @@ Select the account that will be used when transactions are made.
 **/
 
 Accounts.prototype.select = function(address) {
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     if(!this.contains(address))
         return;
 
     accounts['selected'] = address;
-    LocalStore.set(this.options.varName, accounts);
+    KeyStore.set(this.options.varName, accounts);
 };
 
 
@@ -381,7 +386,7 @@ Get an account object that is stored in local browser storage. If encrypted, dec
 **/
 
 Accounts.prototype.get = function(address, passphrase){
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     if(_.isUndefined(address) || _.isEmpty(address))
         return accounts;
@@ -429,7 +434,7 @@ Clear all stored Ethereum accounts in browser.
 
 Accounts.prototype.clear = function(){
     this.log('Clearing all accounts');
-    LocalStore.set(this.options.varName, {});
+    KeyStore.set(this.options.varName, {});
 };
 
 
@@ -442,7 +447,7 @@ Does the account exist in browser storage, given the specified account address.
 **/
 
 Accounts.prototype.contains = function(address){
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     if(_.isUndefined(address)
        || _.isEmpty(address))
@@ -538,7 +543,7 @@ Return all accounts as a list array.
 **/
 
 Accounts.prototype.list = function(){
-    var accounts = LocalStore.get('ethereumAccounts'),
+    var accounts = KeyStore.get('ethereumAccounts'),
         return_array = [];
 
     _.each(_.keys(accounts), function(accountKey, accountIndex){
