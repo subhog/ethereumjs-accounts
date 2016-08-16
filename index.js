@@ -31,7 +31,7 @@ var BigNumber = require('bignumber.js');
 var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
 var crypto = require('crypto');
-var ethUtil = require('ethereumjs-utils')
+var ethUtil = require('ethereumjs-util')
 global.CryptoJS = require('browserify-cryptojs');
 require('browserify-cryptojs/components/enc-base64');
 require('browserify-cryptojs/components/md5');
