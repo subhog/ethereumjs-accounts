@@ -42,11 +42,11 @@ var window = {};
 var KeyStore = {
     keys: {}
 };
-KeyStore.Get = function(key) {
+KeyStore.get = function(key) {
     return this.keys[key];
 };
 
-KeyStore.Set = function (key,value,reactive,callback) {
+KeyStore.set = function (key,value,reactive,callback) {
     this.keys[key] = value;
     if (callback) {
         callback();
