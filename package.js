@@ -1,9 +1,9 @@
 /* jshint ignore:start */
 Package.describe({
-    name: 'silentcicero:ethereumjs-accounts',
-    version: '0.0.11',
+    name: 'nFocus-Labs:ethereumjs-accounts',
+    version: '0.0.14',
     summary: 'A simple module for creating, managing and using Ethereum accounts in browser',
-    git: 'https://github.com/SilentCicero/ethereumjs-accounts',
+    git: 'https://github.com/nFocus-Labs/ethereumjs-accounts-node',
     // By default, Meteor will default to using README.md for documentation.
     // To avoid submitting documentation, set this field to null.
     documentation: 'README.md'

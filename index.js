@@ -311,8 +311,15 @@ Generate a new Ethereum account in browser with a passphrase that will encrypt t
 @return {Object} an account object with the public and private keys included.
 **/
 
-Accounts.prototype.new = function(passphrase){
-    var privateKey = new Buffer(randomBytes(64), 'hex');
+Accounts.prototype.new = function(passphrase, key){
+    var rawKey
+    if (key) {
+        rawKey = key
+    } else {
+        rawKey = randomBytes(64)
+    }
+
+    var privateKey = new Buffer(rawKey, 'hex');
     var publicKey = ethUtil.privateToPublic(privateKey);
     var address = formatAddress(ethUtil.publicToAddress(publicKey)
                                 .toString('hex'));
