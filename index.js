@@ -9,14 +9,14 @@ var crypto = require('crypto');
 var ethUtil = require('ethereumjs-util')
 
 
-const encrypt = (text, passphrase) => {
+const cryptoEncrypt = (text, passphrase) => {
   var cipher = crypto.createCipher('aes-256-ctr', passphrase)
   var crypted = cipher.update(text,'utf8','hex')
   crypted += cipher.final('hex');
   return crypted;
 };
  
-const decrypt = (text, passphrase) => {
+const cryptoDecrypt = (text, passphrase) => {
   var decipher = crypto.createDecipher('aes-256-ctr', passphrase)
   var dec = decipher.update(text,'hex','utf8')
   dec += decipher.final('utf8');
