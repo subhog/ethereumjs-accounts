@@ -1,29 +1,4 @@
-/**
-ethereumjs-accounts - A suite for managing Ethereum accounts in browser.
 
-Welcome to ethereumjs-accounts. Generate, encrypt, manage, export and remove Ethereum accounts and store them in your browsers local storage. You may also choose to extendWeb3 so that transactions made from accounts stored in browser, can be signed with the private key provided. EthereumJs-Accounts also supports account encryption using the AES encryption protocol. You may choose to optionally encrypt your Ethereum account data with a passphrase to prevent others from using or accessing your account.
-
-Requires:
- - cryptojs v0.3.1  <https://github.com/fahad19/crypto-js>
- - localstorejs *  <https://github.com/SilentCicero/localstore>
- - ethereumjs-tx v0.4.0  <https://www.npmjs.com/package/ethereumjs-tx>
- - ethereumjs-tx v1.2.0  <https://www.npmjs.com/package/ethereumjs-util>
- - Underscore.js v1.8.3+  <http://underscorejs.org/>
- - Web3.js v0.4.2+ <https://github.com/ethereum/web3.js>
-
-Commands:
-    (Browserify)
-    browserify --s Accounts index.js -o dist/ethereumjs-accounts.js
-
-    (Run)
-    node index.js
-
-    (NPM)
-    npm install ethereumjs-accounts
-
-    (Meteor)
-    meteor install silentcicero:ethereumjs-accounts
-**/
 
 var _ = require('underscore');
 var Tx = require('ethereumjs-tx');
@@ -32,12 +7,22 @@ var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
 var crypto = require('crypto');
 var ethUtil = require('ethereumjs-util')
-global.CryptoJS = require('browserify-cryptojs');
-require('browserify-cryptojs/components/enc-base64');
-require('browserify-cryptojs/components/md5');
-require('browserify-cryptojs/components/evpkdf');
-require('browserify-cryptojs/components/cipher-core');
-require('browserify-cryptojs/components/aes');
+
+
+const encrypt = (text, passphrase) => {
+  var cipher = crypto.createCipher('aes-256-ctr', passphrase)
+  var crypted = cipher.update(text,'utf8','hex')
+  crypted += cipher.final('hex');
+  return crypted;
+};
+ 
+const decrypt = (text, passphrase) => {
+  var decipher = crypto.createDecipher('aes-256-ctr', passphrase)
+  var dec = decipher.update(text,'hex','utf8')
+  dec += decipher.final('utf8');
+  return dec;
+};
+
 
 var window = {};
 var KeyStore = {
@@ -337,12 +322,9 @@ Accounts.prototype.new = function(passphrase, key){
     if((!_.isUndefined(passphrase) && !_.isEmpty(passphrase))
         || this.options.requirePassphrase){
         if(this.isPassphrase(passphrase)) {
-            privateKey = CryptoJS.AES
-                .encrypt(privateKey.toString('hex'), passphrase)
-                .toString();
-            publicKey = CryptoJS.AES
-                .encrypt(publicKey.toString('hex'), passphrase)
-                .toString();
+            privateKey = cryptoEncrypt(privateKey.toString('hex'), passphrase);
+            publicKey = cryptoEncrypt(publicKey.toString('hex'), passphrase);
+
             accountObject.encrypted = true;
             accountObject.locked = true;
         } else {
@@ -421,12 +403,8 @@ Accounts.prototype.get = function(address, passphrase){
     // If a passphrase is provided, decrypt private and public key
     if(this.isPassphrase(passphrase) && accountObject.encrypted) {
         try {
-            accountObject.private = CryptoJS.AES
-                .decrypt(accountObject.private, passphrase)
-                .toString(CryptoJS.enc.Utf8);
-            accountObject.public = CryptoJS.AES
-                .decrypt(accountObject.public, passphrase)
-                .toString(CryptoJS.enc.Utf8);
+            accountObject.private = cryptoDecrypt(accountObject.private, passphrase);
+            accountObject.public = cryptoDecrypt(accountObject.public, passphrase);
 
             if(ethUtil.sha3(accountObject.public + accountObject.private).toString('hex') == accountObject.hash)
                 accountObject.locked = false;
