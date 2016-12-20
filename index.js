@@ -27,16 +27,35 @@ Commands:
 
 var _ = require('underscore');
 var Tx = require('ethereumjs-tx');
-var LocalStore = require('localstorejs');
 var BigNumber = require('bignumber.js');
 var JSZip = require("jszip");
 var FileSaver = require("node-safe-filesaver");
+var crypto = require('crypto');
+var ethUtil = require('ethereumjs-util')
 global.CryptoJS = require('browserify-cryptojs');
 require('browserify-cryptojs/components/enc-base64');
 require('browserify-cryptojs/components/md5');
 require('browserify-cryptojs/components/evpkdf');
 require('browserify-cryptojs/components/cipher-core');
 require('browserify-cryptojs/components/aes');
+
+var window = {};
+var KeyStore = {
+    keys: {}
+};
+KeyStore.get = function(key) {
+    return this.keys[key];
+};
+
+KeyStore.set = function (key,value,reactive,callback) {
+    this.keys[key] = value;
+    if (callback) {
+        callback();
+    }
+
+};
+
+
 
 /**
 The Accounts constructor method. This method will construct the in browser Ethereum accounts manager.
@@ -71,15 +90,19 @@ var Accounts = module.exports = function(options){
     // build options
     this.options = _.extend(defaultOptions, options);
 
+    if (options.KeyStore) {
+        KeyStore = options.KeyStore;
+    }
+
     // define Accounts object properties
     defineProperties(this);
 
     // get accounts object, if any
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     // if no accounts object exists, create one
     if(_.isUndefined(accounts) || !_.isObject(accounts))
-        LocalStore.set(this.options.varName, {});
+        KeyStore.set(this.options.varName, {});
 };
 
 
@@ -161,20 +184,15 @@ var randomBytes = function(length) {
     var i;
     var result = "";
     var isOpera = Object.prototype.toString.call(window.opera) == '[object Opera]';
-    if(window.crypto && window.crypto.getRandomValues) {
-        values = new Uint32Array(length);
-        window.crypto.getRandomValues(values);
-        for(i=0; i<length; i++) {
-            result += charset[values[i] % charset.length];
-        }
-        return result;
-    } else if(isOpera) {//Opera's Math.random is secure, see http://lists.w3.org/Archives/Public/public-webcrypto/2013Jan/0063.html
-        for(i=0; i<length; i++) {
-            result += charset[Math.floor(Math.random()*charset.length)];
-        }
-        return result;
+
+
+    var values = crypto.randomBytes(length);
+    for(i=0; i<length; i++) {
+        result += charset[values[i] % charset.length];
     }
-    else throw new Error("Your browser sucks and can't generate secure random numbers");
+
+    return result;
+
 }
 
 
@@ -262,7 +280,7 @@ This will set in browser accounts data at a specified address with the specified
 **/
 
 Accounts.prototype.set = function(address, accountObject){
-    var accounts = LocalStore.get('ethereumAccounts');
+    var accounts = KeyStore.get('ethereumAccounts');
 
     // if object, store; if null, delete
     if(_.isObject(accountObject))
@@ -272,7 +290,7 @@ Accounts.prototype.set = function(address, accountObject){
 
     this.log('Setting account object at address: ' + address + ' to account object ' + String(accountObject));
 
-    LocalStore.set(this.options.varName, accounts);
+    KeyStore.set(this.options.varName, accounts);
 };
 
 
@@ -296,43 +314,50 @@ Generate a new Ethereum account in browser with a passphrase that will encrypt t
 @return {Object} an account object with the public and private keys included.
 **/
 
-Accounts.prototype.new = function(passphrase){
-    var private = new Buffer(randomBytes(64), 'hex');
-    var public = ethUtil.privateToPublic(private);
-    var address = formatAddress(ethUtil.publicToAddress(public)
+Accounts.prototype.new = function(passphrase, key){
+    var rawKey
+    if (key) {
+        rawKey = key
+    } else {
+        rawKey = randomBytes(64)
+    }
+
+    var privateKey = new Buffer(rawKey, 'hex');
+    var publicKey = ethUtil.privateToPublic(privateKey);
+    var address = formatAddress(ethUtil.publicToAddress(publicKey)
                                 .toString('hex'));
     var accountObject = {
         address: address
         , encrypted: false
         , locked: false
-        , hash: ethUtil.sha3(public.toString('hex') + private.toString('hex')).toString('hex')
+        , hash: ethUtil.sha3(publicKey.toString('hex') + privateKey.toString('hex')).toString('hex')
     };
 
     // if passphrrase provided or required, attempt account encryption
     if((!_.isUndefined(passphrase) && !_.isEmpty(passphrase))
         || this.options.requirePassphrase){
         if(this.isPassphrase(passphrase)) {
-            private = CryptoJS.AES
-                .encrypt(private.toString('hex'), passphrase)
+            privateKey = CryptoJS.AES
+                .encrypt(privateKey.toString('hex'), passphrase)
                 .toString();
-            public = CryptoJS.AES
-                .encrypt(public.toString('hex'), passphrase)
+            publicKey = CryptoJS.AES
+                .encrypt(publicKey.toString('hex'), passphrase)
                 .toString();
             accountObject.encrypted = true;
             accountObject.locked = true;
         } else {
             this.log('The passphrase you tried to use was invalid.');
-            private = private.toString('hex')
-            public = public.toString('hex')
+            privateKey = privateKey.toString('hex');
+            publicKey = publicKey.toString('hex');
         }
     }else{
-        private = private.toString('hex')
-        public = public.toString('hex')
+        privateKey = privateKey.toString('hex');
+        publicKey = publicKey.toString('hex');
     }
 
     // Set account object private and public keys
-    accountObject.private = private;
-    accountObject.public = public;
+    accountObject.private = privateKey;
+    accountObject.public = publicKey;
     this.set(address, accountObject);
 
     this.log('New address created');
@@ -353,13 +378,13 @@ Select the account that will be used when transactions are made.
 **/
 
 Accounts.prototype.select = function(address) {
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     //if(!this.contains(address))
     //    return;
 
     accounts['selected'] = address;
-    LocalStore.set(this.options.varName, accounts);
+    KeyStore.set(this.options.varName, accounts);
 };
 
 
@@ -372,7 +397,7 @@ Get an account object that is stored in local browser storage. If encrypted, dec
 **/
 
 Accounts.prototype.get = function(address, passphrase){
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     if(_.isUndefined(address) || _.isEmpty(address))
         return accounts;
@@ -422,7 +447,7 @@ Clear all stored Ethereum accounts in browser.
 
 Accounts.prototype.clear = function(){
     this.log('Clearing all accounts');
-    LocalStore.set(this.options.varName, {});
+    KeyStore.set(this.options.varName, {});
 };
 
 
@@ -435,7 +460,7 @@ Does the account exist in browser storage, given the specified account address.
 **/
 
 Accounts.prototype.contains = function(address){
-    var accounts = LocalStore.get(this.options.varName);
+    var accounts = KeyStore.get(this.options.varName);
 
     if(_.isUndefined(address)
        || _.isEmpty(address))
@@ -531,7 +556,7 @@ Return all accounts as a list array.
 **/
 
 Accounts.prototype.list = function(){
-    var accounts = LocalStore.get('ethereumAccounts'),
+    var accounts = KeyStore.get('ethereumAccounts'),
         return_array = [];
 
     _.each(_.keys(accounts), function(accountKey, accountIndex){
