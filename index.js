@@ -53,23 +53,15 @@ The Accounts constructor method. This method will construct the in browser Ether
 
 var Accounts = module.exports = function(options){
     if(_.isUndefined(options))
-        options = {};
+      options = {};
 
     // setup default options
     var defaultOptions = {
-        varName: 'ethereumAccounts'
-        , minPassphraseLength: 6
-        , requirePassphrase: false
-        , selectNew: true
-        , defaultGasPrice: 'useWeb3'
-        , request: function(accountObject){
-            var passphrase = prompt("Please enter your account passphrase for address " + accountObject.address.substr(0, 8) + '...', "passphrase");
-
-            if(passphrase == null)
-                passphrase = '';
-
-            return String(passphrase);
-        }
+      varName:              'ethereumAccounts',
+      minPassphraseLength:  6,
+      requirePassphrase:    false,
+      selectNew:            true,
+      defaultGasPrice:      'useWeb3',
     };
 
     // build options
@@ -573,7 +565,7 @@ and start with the prefix "0x". nonce is required.
 
 @method (signTransaction)
 **/
-Accounts.prototype.signTransaction = function(tx_params, callback) {
+Accounts.prototype.signTransaction = function(tx_params, passphrase, callback) {
     // Accounts instance
     var accounts = this;
 
@@ -587,7 +579,7 @@ Accounts.prototype.signTransaction = function(tx_params, callback) {
 
     // if the account is encrypted, try to decrypt it
     if(account.encrypted) {
-        account = accounts.get(tx_params.from, accounts.options.request(account));
+        account = accounts.get(tx_params.from, String(passphrase));
     }
 
     // if account is still locked, quit
